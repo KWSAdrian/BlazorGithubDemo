@@ -1,38 +1,32 @@
-name: Deploy Blazor WASM to GitHub Page
-env:
-  PUBLISH_DIR: bin/Release/net5.0/publish/wwwroot
+name: Deploy to GitHub Pages
 
-# Controls when the action will run
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v2
+      # Checkout the code
+      - uses: actions/checkout@v2
 
-    - name: Publish application
-      run: dotnet publish -c Release
-    
-    # base href url value should be changed so that resources like CSS and scripts can load properly. 
-    - name: Rewrite base href
-      if: success()
-      uses: SteveSandersonMS/ghaction-rewrite-base-href@v1
-      with:
-        html_path: ${{ env.PUBLISH_DIR }}/index.html
-        base_href: BASE_URL or REPOSITORY_NAME
-        
-    # add .nojekyll file to tell GitHub pages to not treat this as a Jekyll project. (Allow files and folders starting with an underscore)
-    - name: Add .nojekyll file
-      run: touch ${{ env.PUBLISH_DIR }}/.nojekyll
+      # Install .NET Core SDK
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.101
 
-    - name: Commit to GitHub pages Repo
-      if: success()
-      uses: crazy-max/ghaction-github-pages@v1.5.1
-      with:
-        target_branch: gh-pages
-        build_dir: ${{ env.PUBLISH_DIR }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Publish the site
+      - name: Publish
+        #      Don't missing to add "p:GHPages=true". 👇
+        run: dotnet publish ProjectDir/Project.csproj -p:GHPages=true -o:public -c:Release
+
+      # Deploy the site
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: public/wwwroot
+          force_orphan: true
